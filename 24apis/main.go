@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -14,7 +15,7 @@ import (
 type Course struct {
 	CourseId    string  `json:"courseid"`
 	CourseName  string  `json:"coursename"`
-	CoursePrice int     `json:"price"`
+	CoursePrice int     `json:"-"`
 	Author      *Author `json:"author"`
 }
 
@@ -33,6 +34,24 @@ func (c *Course) IsEmpty() bool {
 }
 
 func main() {
+	fmt.Println("APIs in GO")
+	r := mux.NewRouter()
+
+	// seeding
+	courses = append(courses, Course{CourseId: "18", CourseName: "Go-Lang", CoursePrice: 499, Author: &Author{Fullname: "Vaibhav Dagwal", Website: "vaibhav.in"}})
+	courses = append(courses, Course{CourseId: "11", CourseName: "Python", CoursePrice: 299, Author: &Author{Fullname: "Vaibhav Dagwal", Website: "python.in"}})
+
+	// routing
+	r.HandleFunc("/", serveHome).Methods("GET")
+	r.HandleFunc("/courses", getAllCourses).Methods("GET")
+	r.HandleFunc("/course/{id}", getOneCourse).Methods("GET")
+	r.HandleFunc("/course", createOneCourse).Methods("POST")
+	r.HandleFunc("/course/{id}", updateOneCourse).Methods("PUT")
+	r.HandleFunc("/course/{id}", deleteOneCourse).Methods("DELETE")
+
+	// listen
+	log.Fatal(http.ListenAndServe(":4000", r))
+
 }
 
 // controllers - file
@@ -91,6 +110,46 @@ func createOneCourse(w http.ResponseWriter, r *http.Request) {
 
 	course.CourseId = strconv.Itoa(rand.Intn(100))
 	courses = append(courses, course)
-	json.NewEncoder(w).Encode("course")
+	json.NewEncoder(w).Encode(course)
 	return
+}
+
+func updateOneCourse(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Update one course")
+	w.Header().Set("Content-Type", "application/json")
+
+	// grab id from request
+	params := mux.Vars(r)
+
+	// loop, id, remove, add with ID
+
+	for index, course := range courses {
+		if course.CourseId == params["id"] {
+			courses = append(courses[:index], courses[index+1:]...)
+			var course Course
+			_ = json.NewDecoder(r.Body).Decode(&course)
+			course.CourseId = params["id"]
+			courses = append(courses, course)
+			json.NewEncoder(w).Encode(course)
+			return
+		}
+	}
+	// TODO: send a reponse if id is not found
+}
+
+func deleteOneCourse(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Delete one course")
+	w.Header().Set("Content-Type", "application/json")
+
+	params := mux.Vars(r)
+
+	// loop, id, remove
+
+	for index, course := range courses {
+		if course.CourseId == params["id"] {
+			courses = append(courses[:index], courses[index+1:]...)
+			break
+		}
+	}
+
 }
