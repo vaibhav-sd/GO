@@ -13,7 +13,9 @@ func main() {
 	// fmt.Println(<-myCh)
 	// myCh <- 5
 	wg.Add(2)
-	go func(ch chan int, wg *sync.WaitGroup) {
+
+	// Read Only <-cha
+	go func(ch <-chan int, wg *sync.WaitGroup) {
 		val, isOpen := <-myCh
 
 		fmt.Println(isOpen)
@@ -24,7 +26,8 @@ func main() {
 		wg.Done()
 	}(myCh, wg)
 
-	go func(ch chan int, wg *sync.WaitGroup) {
+	// Send Only chan <-
+	go func(ch chan<- int, wg *sync.WaitGroup) {
 		close(myCh)
 		// myCh <- 5
 		// myCh <- 6
